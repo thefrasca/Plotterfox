@@ -5,9 +5,13 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -19,11 +23,17 @@ import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import android.app.ActionBar;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -31,6 +41,7 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends FragmentActivity implements
@@ -44,10 +55,40 @@ public class MainActivity extends FragmentActivity implements
 	private ArrayList<Plots> plotList = new ArrayList<Plots>();
 	private ArrayList<Posts> postList = new ArrayList<Posts>();
 	private ArrayList<String> plotNames = new ArrayList<String>();
+	String username = null;
+	String password = null;
+
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		boolean validated = false;
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+
+		
+		if(getPreferences())		//Attempts to load preferences
+		{
+			ValidateTask validate = new ValidateTask();
+			try {
+
+				Boolean validateResult = validate.execute().get();
+				if (validateResult == true)
+				{
+					validated = true;
+				}
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+		}
+		if (validated != true)
+		{
+			Intent goToNextActivity = new Intent(this, LoginActivity.class);
+			startActivity(goToNextActivity);
+			
+		}	
+		else
+		{
 
 		GetPlots getPlots = new GetPlots();
 		GetPosts getPosts = new GetPosts();
@@ -63,8 +104,8 @@ public class MainActivity extends FragmentActivity implements
 			getPosts.execute(plotList.get(0).getId()); // Makes sure to load posts for the selected plot first
 		}
 		setSpinnerAdapter(plotList);
+		}
 
-	
 	}
 
 	@Override
@@ -93,33 +134,46 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public boolean onNavigationItemSelected(int position, long id) {
 		if (!plotList.isEmpty()){
-
-		GetPosts getPosts = new GetPosts();
-		getPosts.execute(plotList.get(position).getId());
-		
+			GetPosts getPosts = new GetPosts();
+			getPosts.execute(plotList.get(position).getId());
 		}
-	
-		
 		return true;
 	}
 	public void displayPosts(ArrayList<Posts> postList)
 	{
 
 		float wPixels = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200, getResources().getDisplayMetrics());
-		float hPixels = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, getResources().getDisplayMetrics());
 		setContentView(R.layout.activity_main);
 		NowLayout nowLayout = (NowLayout) findViewById(R.id.nowlayout);
 		
 		for(int i=0;i < postList.size();i++){	
-
-			TextView text = new TextView(this);
-			text.setMinHeight((int)hPixels);
-			text.setMinWidth((int) wPixels);
-			text.setBackgroundResource(R.drawable.search_bg_shadow);
-			text.setText(Html.fromHtml(postList.get(i).getPostAuthor() + "<BR>"
-					+ postList.get(i).getPostDate() + "<BR>"
-					+ postList.get(i).getPostBody() + "<BR>"));
-			nowLayout.addView(text);
+			LinearLayout linLayout = new LinearLayout(this);
+			linLayout.setMinimumWidth((int) wPixels);
+			linLayout.setBackgroundResource(R.drawable.search_bg_shadow);
+			linLayout.setOrientation(LinearLayout.VERTICAL);
+			
+			TextView textAuthor = new TextView(this);
+			textAuthor.setTextSize(15);
+			textAuthor.setTextColor(Color.parseColor("#FF0000"));
+			textAuthor.setTypeface(null, Typeface.BOLD);
+			textAuthor.setText(Html.fromHtml(postList.get(i).getPostAuthor()));
+			
+			TextView textDate = new TextView(this);
+			textDate.setTextSize(8);
+			textDate.setPadding(0, -5, 0, 0);
+			textDate.setText(Html.fromHtml(postList.get(i).getPostDate()));
+			
+			TextView textBody = new TextView(this);
+			textBody.setPadding(0, 5, 0, 0);
+			textBody.setText(Html.fromHtml(postList.get(i).getPostBody()));
+			textBody.setMovementMethod(LinkMovementMethod.getInstance());
+					
+			nowLayout.addView(linLayout);
+			
+			linLayout.addView(textAuthor);
+			linLayout.addView(textDate);
+			linLayout.addView(textBody);
+			
 		}
 	}
 	public void setSpinnerAdapter(ArrayList<Plots> plotList)
@@ -138,6 +192,19 @@ public class MainActivity extends FragmentActivity implements
 	
 		actionBar.setListNavigationCallbacks(spinnerMenu,this);
 		
+	}
+	private boolean getPreferences()
+	{
+		boolean result = false;
+		SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+		username = (shared.getString("username", null));
+		password = (shared.getString("password", null));
+
+		if(username != null && password != null)
+		{
+			result = true;
+		}
+		return result;
 	}
 	
 	/**
@@ -166,6 +233,66 @@ public class MainActivity extends FragmentActivity implements
 			return rootView;
 		}
 	}
+	private class ValidateTask extends AsyncTask<Void, Void, Boolean> {
+
+	      @Override
+	      protected Boolean doInBackground(Void... params) {
+	    	  	boolean result = false;
+	    	  	HttpClient httpclient = new DefaultHttpClient();
+	    	    HttpPost httppost = new HttpPost("http://dev.ninespace.net/working/validate.php");
+	    	    
+	    	    InputStream is = null; 	        
+	    	    String validateResponse = "0";
+	    	    // Add your data
+    	        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
+    	        nameValuePairs.add(new BasicNameValuePair("user", username));  //insert user name here
+    	        nameValuePairs.add(new BasicNameValuePair("pass", password));  //insert password here
+    	       try {
+					httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+					HttpResponse response = httpclient.execute(httppost);
+					HttpEntity entity = response.getEntity();
+		    		is = entity.getContent();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	    		//convert response to string
+	    		try{
+	    			BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
+	    			StringBuilder sb = new StringBuilder();
+	    			String line = null;
+	    			while ((line = reader.readLine()) != null) {
+	    				sb.append(line + "\n");
+	    			}
+	    			is.close();
+	    			validateResponse = sb.toString();
+	    			
+	
+	    		}catch(Exception e){
+	    			Log.e("log", "Error converting result "+e.toString());
+	    		}  		
+	    		validateResponse = validateResponse.trim();
+	    		if (validateResponse.equals("1"))
+	    			{
+	    				result = true;
+	    			}
+	    				
+				return result; 
+	      }      
+
+	      @Override
+	      protected void onPostExecute(Boolean result) {       
+	
+	      } 
+
+	      @Override
+	      protected void onPreExecute() {
+	      }
+
+	      @Override
+	      protected void onProgressUpdate(Void... values) {
+	      }
+	}
 	private class GetPosts extends AsyncTask<String, Void, ArrayList<Posts>> {
 
 	      @Override
@@ -181,8 +308,8 @@ public class MainActivity extends FragmentActivity implements
   	        
 	    	    // Add your data
 	    	        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-	    	        nameValuePairs.add(new BasicNameValuePair("user", ""));  //insert user name here
-	    	        nameValuePairs.add(new BasicNameValuePair("pass", ""));  //insert password here
+	    	        nameValuePairs.add(new BasicNameValuePair("user", username));  //insert user name here
+	    	        nameValuePairs.add(new BasicNameValuePair("pass", password));  //insert password here
 	    	        nameValuePairs.add(new BasicNameValuePair("cTopic", cTopic));
 	    	        nameValuePairs.add(new BasicNameValuePair("pLimit", "5")); // post limit
 	    	        try {
@@ -211,13 +338,27 @@ public class MainActivity extends FragmentActivity implements
 	    		try {
 					postInfo = json.getJSONArray("postInfo");
 			
-		    		for(int i=0;i < postInfo.length();i++){						
+		    		for(int i=0;i < postInfo.length();i++){			
 		    			JSONObject e = postInfo.getJSONObject(i);
 		         		Posts postHolder = new Posts();
+		         		
+		         	//	Date date = new Date(location.getTime());
+		         	//	DateFormat dateFormat = android.text.format.DateFormat.getDateFormat(getApplicationContext());
+		         	//	mTimeText.setText("Time: " + dateFormat.format(date));
+		         		
+		         		String mytime = e.getString("postDate");
+		         	    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+		         	    java.util.Date myDate = null;
+		         	    myDate = dateFormat.parse(mytime);
+
+
+		         	    SimpleDateFormat timeFormat = new SimpleDateFormat("MM.dd.yyyy HH:mm");
+		         	    String finalDate = timeFormat.format(myDate);
+		         	    
 		         		postHolder.setPostID(e.getString("postID"));
 		         		postHolder.setPostAuthor(e.getString("postAuthor"));
-		         		postHolder.setPostDate(e.getString("postDate"));
 		         		postHolder.setPostBody(e.getString("postBody"));
+		         		postHolder.setPostDate(finalDate);
 		            	postList.add(postHolder);
 		    		} 
 	    		}catch (Exception e) {
@@ -255,8 +396,8 @@ public class MainActivity extends FragmentActivity implements
 	    	    	  	HttpClient httpclient = new DefaultHttpClient();
 			    	    HttpPost httppost = new HttpPost("http://dev.ninespace.net/working/getPlotsAndroid.php");
 		    	        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-		    	        nameValuePairs.add(new BasicNameValuePair("user", "")); //username
-		    	        nameValuePairs.add(new BasicNameValuePair("pass", "")); //password
+		    	        nameValuePairs.add(new BasicNameValuePair("user", username)); //username
+		    	        nameValuePairs.add(new BasicNameValuePair("pass", password)); //password
 						httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 						HttpResponse response = httpclient.execute(httppost);
  
@@ -275,7 +416,6 @@ public class MainActivity extends FragmentActivity implements
 	    	    		StringBuilder sb = new StringBuilder();
 	    	    		String line = null;
 	    	    		while ((line = reader.readLine()) != null) {
-	    	    	
 	    	    			sb.append(line + "\n");
 	    	    		}
 	    	    		is.close();

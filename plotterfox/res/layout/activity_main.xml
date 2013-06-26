@@ -2,13 +2,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#336699"
     android:fillViewport="true" >
 
     <com.plotterfox.mobile.NowLayout
         android:id="@+id/nowlayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#e3e3e3"
+
         android:orientation="vertical" >
 
     </com.plotterfox.mobile.NowLayout>
