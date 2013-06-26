@@ -25,6 +25,7 @@ import org.json.JSONObject;
 import android.app.ActionBar;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
@@ -38,11 +39,13 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends FragmentActivity implements
 		ActionBar.OnNavigationListener {
@@ -139,6 +142,28 @@ public class MainActivity extends FragmentActivity implements
 		}
 		return true;
 	}
+	
+	@Override
+	  public boolean onOptionsItemSelected(MenuItem item) {
+	    switch (item.getItemId()) {
+	    case R.id.action_clearPref:
+	    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		     Editor ed = prefs.edit();
+		     ed.putString("username", null );
+		     ed.putString("password", null );
+		     ed.commit();
+		     
+		     
+	      Toast.makeText(this, "Login Information has been cleared.", Toast.LENGTH_SHORT)
+	          .show();
+	      break;
+
+	    default:
+	      break;
+	    }
+
+	    return true;
+	  }
 	public void displayPosts(ArrayList<Posts> postList)
 	{
 
