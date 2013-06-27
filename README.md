@@ -2,7 +2,4 @@ Plotterfox
 ==========
 
 
-User Name and password for httppost forms are removed.  Currently they are hardcoded and missing on the version on github.
-
-They are located in the GetPlots and GetPosts classes.
-
+Authentication is included now.  This is now an alpha build plotterfox reader.  Adding add post functionality shortly.
