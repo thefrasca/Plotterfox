@@ -17,11 +17,12 @@ import android.widget.EditText;
 
 public class LoginActivity extends Activity {
 	
-
 	 EditText passText  ;
 	 EditText userText;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		
+		//A user never starts here.  They are redirected from main activity only if failing validation checks.
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.loginlayout);
 
@@ -29,21 +30,6 @@ public class LoginActivity extends Activity {
 		 userText = (EditText) findViewById(R.id.user);
 		 passText = new EditText(this);
 		 passText = (EditText) findViewById(R.id.password);
-
-/*
-		 final Button button = (Button) findViewById(R.id.button_id);
-         button.setOnClickListener(new View.OnClickListener() {
-             public void onClick(View v) {
-                 // Perform action on click
-             }
-         });
-
-		      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		      Editor ed = prefs.edit();
-		      ed.putString(KEY_USERNAME, user );
-		      ed.putString(KEY_PASSWORD, pass);
-		      ed.commit();
-*/
 	}
 
 	@Override
@@ -52,6 +38,8 @@ public class LoginActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+	//This is run when a user clicks the onclick button.  It does not actualy validate a user, but sets the preferences and then redirects to
+	//MainActivity.  It is on MainActivity that validation is performed.  If validation check fails, they are redirected back to login.	
 	public void login(View v)
 	{
 		 String user = null;
@@ -70,6 +58,7 @@ public class LoginActivity extends Activity {
 			startActivity(goToNextActivity);
 	     
 	}
+	//This method hashes the password via MD5. 
 	public static String getMD5_Hash(String s) { MessageDigest m = null;
 
     try {

@@ -1,14 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <string name="app_name">plotterfox</string>
     <string name="action_settings">Settings</string>
     <string name="title_section1">Section 1</string>
     <string name="title_section2">Section 2</string>
+    <string name="validate_url">http://dev.ninespace.net/working/validate.php</string>
     <string name="title_section3">Section 3</string>
     <string name="login">Login</string>
     <string name="user">Username</string>
     <string name="password">Password</string>
     <string name="clearpref">Clear Login Info</string>
+    <string name="get_posts_url">http://dev.ninespace.net/working/getPosts.php</string>
+    <string name="get_plots_url">http://dev.ninespace.net/working/getPlotsAndroid.php</string>
+    <string name="refresh">Refresh</string>
+    <string name="post">New Post</string>
 
 </resources>
