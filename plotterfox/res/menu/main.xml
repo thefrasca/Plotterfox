@@ -1,4 +1,5 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
@@ -14,6 +15,6 @@
         android:id="@+id/action_post"
         android:orderInCategory="1"
         android:showAsAction="ifRoom"
-        android:icon="@drawable/content_edit"
+        android:icon="@drawable/content_new"
         android:title="@string/post"/>    
 </menu>

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -21,7 +22,11 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.google.android.gcm.GCMRegistrar;
+
 import android.app.ActionBar;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -48,9 +53,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 public class MainActivity extends FragmentActivity implements
 		ActionBar.OnNavigationListener {
+	String regId = "";
 
+    
 	//Activity level variables for use in managing plots and authentication credentials.  Username and password are only read once.
 	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
 	private ArrayList<Plots> plotList = new ArrayList<Plots>();
@@ -61,15 +69,15 @@ public class MainActivity extends FragmentActivity implements
 	String postLimit = null;
 	String cTopic = "0";
 	int targetIndex = 0;
-	
+  
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		
+		RegisterWithGCM();
 		//On create of the main activity.  All users start here unvalidated!
 		boolean validated = false;
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-
+	
 		if(getPreferences())		//Attempts to load preferences
 		{
 			//This validates the user by using stored credentials.
@@ -97,8 +105,7 @@ public class MainActivity extends FragmentActivity implements
 		//User is validated and can proceed to see plots.
 		else
 		{
-			
-		//Sets permanent menu key on the action bar.  This is disabled normally for people who have a menu button.  Pressing physical
+			//Sets permanent menu key on the action bar.  This is disabled normally for people who have a menu button.  Pressing physical
 			//menu button does the same as pressing the options indicator in the upper right.
 			try {
 		        ViewConfiguration config = ViewConfiguration.get(this);
@@ -124,7 +131,7 @@ public class MainActivity extends FragmentActivity implements
 			//Assuming we got at least one active plot, grab all posts for the active plot.  It defaults to the first plot in the array.
 			if(!plotList.isEmpty())
 			{			
-				getPosts.execute(plotList.get(targetIndex).getId()); // Makes sure to load posts for the selected plot first
+				getPosts.execute(plotList.get(0).getId()); // Makes sure to load posts for the selected plot first
 			}
 		//Sets plot list
 		setSpinnerAdapter(plotList);
@@ -198,9 +205,23 @@ public class MainActivity extends FragmentActivity implements
 	    default:
 	      break;
 	    }
+
 	    return true;
 	  }
-	
+    private void RegisterWithGCM()
+    {    	 	
+    	GCMRegistrar.checkDevice(this);
+    	GCMRegistrar.checkManifest(this);
+    	final String regId = GCMRegistrar.getRegistrationId(this);       	
+    	if (regId.equals("")) {
+
+    	  GCMRegistrar.register(this, "590906407653"); // Note: get the sender id from configuration.
+    	} else {
+    	  Log.e("Registration", "Already registered, regId: " + regId);
+    	}
+
+    }
+
 	//This method physically displays the posts once they are retrieved.  The input arraylist contains all the posts and post data.
 	public void displayPosts(ArrayList<Posts> postList)
 	{
@@ -539,4 +560,5 @@ public class MainActivity extends FragmentActivity implements
 	      protected void onProgressUpdate(Void... values) {
 	      }
 	}
+	
 }
