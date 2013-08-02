@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.app.Activity;
@@ -50,7 +51,7 @@ public class LoginActivity extends Activity {
 	     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 	     Editor ed = prefs.edit();
 	     ed.putString("username", user );
-	     Log.e("hash",hashedPassword);
+
 	     ed.putString("password", hashedPassword);
 	     ed.commit();
 	     

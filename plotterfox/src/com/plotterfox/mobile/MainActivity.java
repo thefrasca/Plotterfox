@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -21,7 +22,11 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.google.android.gcm.GCMRegistrar;
+
 import android.app.ActionBar;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -48,9 +53,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 public class MainActivity extends FragmentActivity implements
 		ActionBar.OnNavigationListener {
+	private String TAG = "** GCMPushDEMOAndroid**";
+	private TextView mDisplay;
+	String regId = "";
 
+    
 	//Activity level variables for use in managing plots and authentication credentials.  Username and password are only read once.
 	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
 	private ArrayList<Plots> plotList = new ArrayList<Plots>();
@@ -58,10 +68,10 @@ public class MainActivity extends FragmentActivity implements
 	private ArrayList<String> plotNames = new ArrayList<String>();
 	String username = null;
 	String password = null;
-	
+  
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		
+		RegisterWithGCM();
 		//On create of the main activity.  All users start here unvalidated!
 		boolean validated = false;
 		super.onCreate(savedInstanceState);
@@ -183,7 +193,19 @@ public class MainActivity extends FragmentActivity implements
 
 	    return true;
 	  }
-	
+    private void RegisterWithGCM()
+    {    	 	
+    	GCMRegistrar.checkDevice(this);
+    	GCMRegistrar.checkManifest(this);
+    	final String regId = GCMRegistrar.getRegistrationId(this);       	
+    	if (regId.equals("")) {
+
+    	  GCMRegistrar.register(this, "590906407653"); // Note: get the sender id from configuration.
+    	} else {
+    	  Log.e("Registration", "Already registered, regId: " + regId);
+    	}
+
+    }
 
 	//This method physically displays the posts once they are retrieved.  The input arraylist contains all the posts and post data.
 	public void displayPosts(ArrayList<Posts> postList)
@@ -516,4 +538,5 @@ public class MainActivity extends FragmentActivity implements
 	      protected void onProgressUpdate(Void... values) {
 	      }
 	}
+	
 }
