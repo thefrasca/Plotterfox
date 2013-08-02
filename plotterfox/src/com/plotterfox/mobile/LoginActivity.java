@@ -11,7 +11,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
 
@@ -32,12 +31,6 @@ public class LoginActivity extends Activity {
 		 passText = (EditText) findViewById(R.id.password);
 	}
 
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
 	//This is run when a user clicks the onclick button.  It does not actualy validate a user, but sets the preferences and then redirects to
 	//MainActivity.  It is on MainActivity that validation is performed.  If validation check fails, they are redirected back to login.	
 	public void login(View v)

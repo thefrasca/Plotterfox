@@ -58,6 +58,9 @@ public class MainActivity extends FragmentActivity implements
 	private ArrayList<String> plotNames = new ArrayList<String>();
 	String username = null;
 	String password = null;
+	String postLimit = null;
+	String cTopic = "0";
+	int targetIndex = 0;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +69,7 @@ public class MainActivity extends FragmentActivity implements
 		boolean validated = false;
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-	
+
 		if(getPreferences())		//Attempts to load preferences
 		{
 			//This validates the user by using stored credentials.
@@ -94,7 +97,8 @@ public class MainActivity extends FragmentActivity implements
 		//User is validated and can proceed to see plots.
 		else
 		{
-			//Sets permanent menu key on the action bar.  This is disabled normally for people who have a menu button.  Pressing physical
+			
+		//Sets permanent menu key on the action bar.  This is disabled normally for people who have a menu button.  Pressing physical
 			//menu button does the same as pressing the options indicator in the upper right.
 			try {
 		        ViewConfiguration config = ViewConfiguration.get(this);
@@ -120,7 +124,7 @@ public class MainActivity extends FragmentActivity implements
 			//Assuming we got at least one active plot, grab all posts for the active plot.  It defaults to the first plot in the array.
 			if(!plotList.isEmpty())
 			{			
-				getPosts.execute(plotList.get(0).getId()); // Makes sure to load posts for the selected plot first
+				getPosts.execute(plotList.get(targetIndex).getId()); // Makes sure to load posts for the selected plot first
 			}
 		//Sets plot list
 		setSpinnerAdapter(plotList);
@@ -157,6 +161,10 @@ public class MainActivity extends FragmentActivity implements
 		if (!plotList.isEmpty()){
 			GetPosts getPosts = new GetPosts();
 			getPosts.execute(plotList.get(position).getId());
+		     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		     Editor ed = prefs.edit();
+		     ed.putInt("targetIndex", position );
+		     ed.commit();
 		}
 		return true;
 	}
@@ -177,14 +185,22 @@ public class MainActivity extends FragmentActivity implements
 	      Toast.makeText(this, "Login Information has been cleared.", Toast.LENGTH_SHORT)
 	          .show();
 	      break;
+	    case R.id.action_settings:
+	         Intent settingsActivity = new Intent(this, SettingsActivity.class);
+	            startActivity(settingsActivity);
+	      break;
+	    case R.id.action_post:
+	    	 Intent postActivity = new Intent(this, PostActivity.class);
+	    	 postActivity.putExtra("username",username);
+	    	 postActivity.putExtra("cTopic",cTopic);
+	    	 startActivity(postActivity);
+	      break;
 	    default:
 	      break;
 	    }
-
 	    return true;
 	  }
 	
-
 	//This method physically displays the posts once they are retrieved.  The input arraylist contains all the posts and post data.
 	public void displayPosts(ArrayList<Posts> postList)
 	{
@@ -244,7 +260,10 @@ public class MainActivity extends FragmentActivity implements
 	            android.R.layout.simple_list_item_1, plotNames);
 	
 		actionBar.setListNavigationCallbacks(spinnerMenu,this);
-		
+		int selectedIndex = actionBar.getSelectedNavigationIndex();
+		if (selectedIndex != targetIndex) {
+		    actionBar.setSelectedNavigationItem(targetIndex);
+		}
 	}
 	
 	//Gets existing login preferences.  If it cannot find them, it returns null in both username and password variables.  
@@ -254,7 +273,11 @@ public class MainActivity extends FragmentActivity implements
 		SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
 		username = (shared.getString("username", null));
 		password = (shared.getString("password", null));
-
+		postLimit = (shared.getString("postLimit", "10"));
+		targetIndex = (shared.getInt("targetIndex",0));
+		
+		Log.e("test",username);
+		Log.e("test",password);
 		if(username != null && password != null)
 		{
 			result = true;
@@ -357,7 +380,7 @@ public class MainActivity extends FragmentActivity implements
 
 	      @Override
 	      protected ArrayList<Posts> doInBackground(String... params) {
-	    	  	String cTopic = params[0];
+	    	  	cTopic = params[0];
 	    	  	HttpClient httpclient = new DefaultHttpClient();
 	    	    HttpPost httppost = new HttpPost(getBaseContext().getString(R.string.get_posts_url));
  	    	    postList = new ArrayList<Posts>();
@@ -371,7 +394,7 @@ public class MainActivity extends FragmentActivity implements
 	    	        nameValuePairs.add(new BasicNameValuePair("user", username));  //insert user name here
 	    	        nameValuePairs.add(new BasicNameValuePair("pass", password));  //insert password here
 	    	        nameValuePairs.add(new BasicNameValuePair("cTopic", cTopic));
-	    	        nameValuePairs.add(new BasicNameValuePair("pLimit", "5")); // post limit
+	    	        nameValuePairs.add(new BasicNameValuePair("pLimit", postLimit)); // post limit
 	    	        try {
 						httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 						HttpResponse response = httpclient.execute(httppost);

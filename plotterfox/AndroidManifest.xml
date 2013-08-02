@@ -8,24 +8,33 @@
         android:minSdkVersion="14"
         android:targetSdkVersion="17" />
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCOUNT_MANAGER"/>
-    <uses-permission android:name="android.permission.USE_CREDENTIALS"/>
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@drawable/ic_launcher_pfox"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
             android:name="com.plotterfox.mobile.MainActivity"
             android:label="@string/app_name" >
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity android:name="com.plotterfox.mobile.LoginActivity"></activity>
+        <activity android:name="com.plotterfox.mobile.SettingsActivity">
+            <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value="com.plotterfox.mobile.MainActivity" />
+        </activity>
+               <activity android:name="com.plotterfox.mobile.PostActivity">
+            <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value="com.plotterfox.mobile.MainActivity" />
+        </activity>
+
     </application>
 
 </manifest>
