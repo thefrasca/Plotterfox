@@ -40,7 +40,7 @@ public class GCMIntentService extends GCMBaseIntentService {
 	protected void onUnregistered(Context arg0, String arg1) {
 	}
 	   private static void generateNotification(Context context, String message) {
-	        int icon = R.drawable.ic_launcher;
+	        int icon = R.drawable.ic_launcher_pfox;
 	        long when = System.currentTimeMillis();
 	        NotificationManager notificationManager = (NotificationManager)
 	                context.getSystemService(Context.NOTIFICATION_SERVICE);

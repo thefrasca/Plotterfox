@@ -5,12 +5,23 @@
     android:background="#336699"
     android:fillViewport="true" >
 
-    <com.plotterfox.mobile.NowLayout
+
+<LinearLayout 
+
+        android:id="@+id/nowlayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical" >
+
+</LinearLayout>
+    
+ <!--   
+ <com.plotterfox.mobile.NowLayout
         android:id="@+id/nowlayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical" >
 
     </com.plotterfox.mobile.NowLayout>
-
+-->
 </ScrollView>

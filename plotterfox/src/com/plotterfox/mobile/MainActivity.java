@@ -55,7 +55,7 @@ import android.widget.Toast;
 
 
 public class MainActivity extends FragmentActivity implements
-		ActionBar.OnNavigationListener {
+	ActionBar.OnNavigationListener {
 	String regId = "";
 
     
@@ -72,7 +72,7 @@ public class MainActivity extends FragmentActivity implements
   
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		RegisterWithGCM();
+		
 		//On create of the main activity.  All users start here unvalidated!
 		boolean validated = false;
 		super.onCreate(savedInstanceState);
@@ -105,6 +105,8 @@ public class MainActivity extends FragmentActivity implements
 		//User is validated and can proceed to see plots.
 		else
 		{
+			//Registers the device for notifications.
+			RegisterWithGCM();
 			//Sets permanent menu key on the action bar.  This is disabled normally for people who have a menu button.  Pressing physical
 			//menu button does the same as pressing the options indicator in the upper right.
 			try {
@@ -215,7 +217,7 @@ public class MainActivity extends FragmentActivity implements
     	final String regId = GCMRegistrar.getRegistrationId(this);       	
     	if (regId.equals("")) {
 
-    	  GCMRegistrar.register(this, "590906407653"); // Note: get the sender id from configuration.
+    	  GCMRegistrar.register(this, "590906407653"); // This string is the sender ID associated with he server side key
     	} else {
     	  Log.e("Registration", "Already registered, regId: " + regId);
     	}
@@ -227,7 +229,9 @@ public class MainActivity extends FragmentActivity implements
 	{
 		float wPixels = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200, getResources().getDisplayMetrics());
 		setContentView(R.layout.activity_main);
-		NowLayout nowLayout = (NowLayout) findViewById(R.id.nowlayout);
+		LinearLayout lLayout = (LinearLayout) findViewById(R.id.nowlayout);
+
+		//NowLayout nowLayout = (NowLayout) findViewById(R.id.nowlayout);
 		//NowLayout nowLayout = new NowLayout(this);
 		
 		for(int i=0;i < postList.size();i++){	
@@ -257,7 +261,7 @@ public class MainActivity extends FragmentActivity implements
 			textBody.setText(Html.fromHtml(postList.get(i).getPostBody()));
 			textBody.setMovementMethod(LinkMovementMethod.getInstance());
 					
-			nowLayout.addView(linLayout,layoutParams);
+			lLayout.addView(linLayout,layoutParams);
 			
 			linLayout.addView(textAuthor);
 			linLayout.addView(textDate);
