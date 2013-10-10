@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
+    android:orientation="vertical"
+    android:background="#336699" >
     <requestFocus />
 
     <EditText
@@ -12,7 +13,9 @@
         android:ems="10"
         android:inputType="textMultiLine"
         android:gravity="top"
-        android:minHeight="150dp" >
+        android:background="#FFFFFF"
+        android:minHeight="150dp"
+        android:layout_margin="5dp" >
 
         <requestFocus />
     </EditText>
@@ -22,6 +25,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Post" 
+        android:background="@drawable/postbutton"
+        android:layout_margin="5dp"
         android:onClick="post"/>
 
 </LinearLayout>

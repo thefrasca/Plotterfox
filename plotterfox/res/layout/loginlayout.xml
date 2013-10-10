@@ -18,8 +18,8 @@
         android:layout_marginTop="24dp"
         android:ems="10"
         android:hint="@string/password"
-        android:background="#FFFFFF"
-        android:inputType="textPassword" />
+       android:background="@drawable/loginedittext"
+               android:inputType="textPassword"/>
 
     <Button
         android:id="@+id/button"
@@ -29,9 +29,12 @@
         android:layout_alignRight="@+id/imageView1"
         android:layout_below="@+id/password"
         android:layout_marginTop="29dp"
-        android:background="#FFA500"
         android:onClick="login"
-        android:text="@string/login" />
+        android:text="@string/login" 
+        android:background="@drawable/postbutton"
+        
+
+/>
     <ImageView
         android:id="@+id/imageView1"
         android:layout_width="wrap_content"
@@ -48,7 +51,7 @@
         android:layout_alignRight="@+id/password"
         android:layout_below="@+id/imageView1"
         android:layout_marginTop="39dp"
-        android:background="#FFFFFF"
+       android:background="@drawable/loginedittext"
         android:ems="10"
         android:hint="@string/user"
         android:inputType="textPersonName" >

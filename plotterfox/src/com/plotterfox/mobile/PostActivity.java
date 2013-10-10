@@ -131,9 +131,11 @@ public class PostActivity extends Activity{
 	    		}  		
 	    		postResponse = postResponse.trim();
 
+    			Log.e("postOutside",postResponse);
 
 	    		if (postResponse.equals("1"))
 	    			{
+
 	    				result = true;
 	    				Intent goToNextActivity = new Intent(getBaseContext(), MainActivity.class);
 	    				startActivity(goToNextActivity);

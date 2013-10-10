@@ -18,11 +18,12 @@ import android.widget.EditText;
 
 public class LoginActivity extends Activity {
 	
+	
 	 EditText passText  ;
 	 EditText userText;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		
+	
 		//A user never starts here.  They are redirected from main activity only if failing validation checks.
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.loginlayout);
@@ -36,7 +37,6 @@ public class LoginActivity extends Activity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
 	//This is run when a user clicks the onclick button.  It does not actualy validate a user, but sets the preferences and then redirects to

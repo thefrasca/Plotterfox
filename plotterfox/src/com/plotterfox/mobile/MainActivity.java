@@ -2,13 +2,16 @@ package com.plotterfox.mobile;
 
 import java.io.BufferedReader;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 
+import java.security.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 
@@ -24,14 +27,20 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.google.android.gcm.GCMRegistrar;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import android.app.ActionBar;
+import android.app.ProgressDialog;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.provider.Settings;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -56,8 +65,6 @@ import android.widget.Toast;
 
 public class MainActivity extends FragmentActivity implements
 	ActionBar.OnNavigationListener {
-	String regId = "";
-
     
 	//Activity level variables for use in managing plots and authentication credentials.  Username and password are only read once.
 	private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
@@ -69,17 +76,77 @@ public class MainActivity extends FragmentActivity implements
 	String postLimit = null;
 	String cTopic = "0";
 	int targetIndex = 0;
-  
+	String androidID = null;
+	ProgressDialog progressDialog;
+	public static final String EXTRA_MESSAGE = "message";
+    public static final String PROPERTY_REG_ID = "registration_id";
+    private static final String PROPERTY_APP_VERSION = "appVersion";
+    private static final String PROPERTY_ON_SERVER_EXPIRATION_TIME =
+            "onServerExpirationTimeMs";
+    /**
+     * Default lifespan (7 days) of a reservation until it is considered expired.
+     */
+    public static final long REGISTRATION_EXPIRY_TIME_MS = 1000 * 3600 * 24 * 7;
+
+    /**
+     * Substitute you own sender ID here.
+     */
+    String SENDER_ID = "590906407653";
+
+    /**
+     * Tag used on log messages.
+     */
+    static final String TAG = "PFOX";
+
+    GoogleCloudMessaging gcm;
+    AtomicInteger msgId = new AtomicInteger();
+    SharedPreferences prefs;
+    Context context;
+	boolean validated = false;
+
+    String regid;
+    public void onNewIntent(Intent intent){
+    	int navItem = -1;
+    	int iterator = 0;
+		Bundle extras = intent.getExtras();
+		if(extras !=null) {
+		    String plotID = extras.getString("plotID");
+		    	while (navItem == -1)
+		    	{
+		    		if (plotID.equals(plotList.get(iterator).getId()))
+		    		{
+		    			navItem = iterator;
+		   		     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+				     Editor ed = prefs.edit();
+					 postLimit = (prefs.getString("postLimit", "10"));
+						
+				     ed.putInt("targetIndex", navItem );
+				     ed.commit();
+				     getActionBar().setSelectedNavigationItem(navItem);
+		    		}
+		    		iterator++;
+		    	}
+		}
+    }
+    
+    @Override
+    public void onResume(){
+    	super.onResume();
+
+	}
+
+    
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		
+  
 		//On create of the main activity.  All users start here unvalidated!
-		boolean validated = false;
+	
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 	
 		if(getPreferences())		//Attempts to load preferences
 		{
+	    
 			//This validates the user by using stored credentials.
 			ValidateTask validate = new ValidateTask();
 			try {
@@ -93,20 +160,20 @@ public class MainActivity extends FragmentActivity implements
 				e.printStackTrace();
 			} 
 		}
-		
-		//If user does not have preferences, or if the user has not successfully validated (changed their password online etc...)
-		//They will be redirected to the loginActivity to renter info.  Their existing info, whatever it was, is wiped from the local storage.
 		if (validated != true)
 		{
+
 			Intent goToNextActivity = new Intent(this, LoginActivity.class);
+		
 			startActivity(goToNextActivity);
-			
+		
 		}	
 		//User is validated and can proceed to see plots.
 		else
 		{
+	    	
 			//Registers the device for notifications.
-			RegisterWithGCM();
+
 			//Sets permanent menu key on the action bar.  This is disabled normally for people who have a menu button.  Pressing physical
 			//menu button does the same as pressing the options indicator in the upper right.
 			try {
@@ -123,6 +190,7 @@ public class MainActivity extends FragmentActivity implements
 			//Begin to populate plots drop down and get posts.
 			GetPlots getPlots = new GetPlots();
 			GetPosts getPosts = new GetPosts();
+			
 			try {
 				//Gets all active plots for the user.
 				plotList = getPlots.execute().get();
@@ -130,20 +198,26 @@ public class MainActivity extends FragmentActivity implements
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			//Assuming we got at least one active plot, grab all posts for the active plot.  It defaults to the first plot in the array.
-			if(!plotList.isEmpty())
-			{			
-				getPosts.execute(plotList.get(0).getId()); // Makes sure to load posts for the selected plot first
-			}
-		//Sets plot list
-		setSpinnerAdapter(plotList);
-		}
+			setSpinnerAdapter(plotList);
 
+			context = getApplicationContext();
+	        regid = getRegistrationId(context);
+			 androidID = Settings.Secure.getString(getContentResolver(),  
+	                Settings.Secure.ANDROID_ID);	
+			
+	        if (regid.length() == 0) {
+				
+	            registerBackground();
+	        }
+	        gcm = GoogleCloudMessaging.getInstance(this);
+
+		}
 	}
 
 	@Override
 	public void onRestoreInstanceState(Bundle savedInstanceState) {
 		// Restore the previously serialized current dropdown position.
+
 		if (savedInstanceState.containsKey(STATE_SELECTED_NAVIGATION_ITEM)) {
 			getActionBar().setSelectedNavigationItem(
 					savedInstanceState.getInt(STATE_SELECTED_NAVIGATION_ITEM));
@@ -164,16 +238,19 @@ public class MainActivity extends FragmentActivity implements
 		return true;
 	}
 
-	//Refreshs posts if plot select changes via the drop down.
+	//Refresh posts if plot select changes via the drop down.
 	@Override
 	public boolean onNavigationItemSelected(int position, long id) {
 		if (!plotList.isEmpty()){
-			GetPosts getPosts = new GetPosts();
-			getPosts.execute(plotList.get(position).getId());
 		     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		     Editor ed = prefs.edit();
+				postLimit = (prefs.getString("postLimit", "10"));
+	GetPosts getPosts = new GetPosts();
+			getPosts.execute(plotList.get(position).getId());
+	     Editor ed = prefs.edit();
 		     ed.putInt("targetIndex", position );
 		     ed.commit();
+		
+			     
 		}
 		return true;
 	}
@@ -181,49 +258,113 @@ public class MainActivity extends FragmentActivity implements
 	//Non drop down action bar item actions here
 	@Override
 	  public boolean onOptionsItemSelected(MenuItem item) {
-	    switch (item.getItemId()) {
+	    if (item.getItemId() == R.id.action_clearPref) {
 	    
 	    //If selecting clear login, this resets the login information stored locally on the device.  This will force a login when app
 	    //is restarted.  User can continue to use app normally until the app is closed and reopened. 
-	    case R.id.action_clearPref:
+	        final SharedPreferences prefsGCM = getGCMPreferences(context);
+	        SharedPreferences.Editor editor = prefsGCM.edit();
+	        editor.putString(PROPERTY_REG_ID, "");
+	        editor.commit();
 	    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		     Editor ed = prefs.edit();
 		     ed.putString("username", null );
 		     ed.putString("password", null );
 		     ed.commit();
+		   String registrationId = prefsGCM.getString(PROPERTY_REG_ID, "");
 	      Toast.makeText(this, "Login Information has been cleared.", Toast.LENGTH_SHORT)
 	          .show();
-	      break;
-	    case R.id.action_settings:
-	         Intent settingsActivity = new Intent(this, SettingsActivity.class);
+	    }
+	    
+	    else if ( item.getItemId() == R.id.action_settings){
+
+	    	Intent settingsActivity = new Intent(this, SettingsActivity.class);
 	            startActivity(settingsActivity);
-	      break;
-	    case R.id.action_post:
+	    }
+	    else if (item.getItemId() == R.id.action_post){
 	    	 Intent postActivity = new Intent(this, PostActivity.class);
 	    	 postActivity.putExtra("username",username);
 	    	 postActivity.putExtra("cTopic",cTopic);
 	    	 startActivity(postActivity);
-	      break;
-	    default:
-	      break;
 	    }
-
+	    else
+	    {}
+	  
 	    return true;
 	  }
-    private void RegisterWithGCM()
-    {    	 	
-    	GCMRegistrar.checkDevice(this);
-    	GCMRegistrar.checkManifest(this);
-    	final String regId = GCMRegistrar.getRegistrationId(this);       	
-    	if (regId.equals("")) {
 
-    	  GCMRegistrar.register(this, "590906407653"); // This string is the sender ID associated with he server side key
-    	} else {
-    	  Log.e("Registration", "Already registered, regId: " + regId);
-    	}
-
+    private String getRegistrationId(Context context) {
+        final SharedPreferences prefs = getGCMPreferences(context);
+        String registrationId = prefs.getString(PROPERTY_REG_ID, "");
+        if (registrationId.length() == 0) {
+            Log.v(TAG, "Registration not found.");
+            return "";
+        }
+        // check if app was updated; if so, it must clear registration id to
+        // avoid a race condition if GCM sends a message
+        int registeredVersion = prefs.getInt(PROPERTY_APP_VERSION, Integer.MIN_VALUE);
+        int currentVersion = getAppVersion(context);
+        if (registeredVersion != currentVersion || isRegistrationExpired()) {
+            Log.v(TAG, "App version changed or registration expired.");
+            return "";
+        }
+        return registrationId;
+    }
+    private SharedPreferences getGCMPreferences(Context context) {
+        return getSharedPreferences(MainActivity.class.getSimpleName(), 
+                Context.MODE_PRIVATE);
+    }
+    /**
+     * @return Application's version code from the {@code PackageManager}.
+     */
+    private static int getAppVersion(Context context) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager()
+                    .getPackageInfo(context.getPackageName(), 0);
+            return packageInfo.versionCode;
+        } catch (NameNotFoundException e) {
+            // should never happen
+            throw new RuntimeException("Could not get package name: " + e);
+        }
     }
 
+    /**
+     * Checks if the registration has expired.
+     *
+     * <p>To avoid the scenario where the device sends the registration to the
+     * server but the server loses it, the app developer may choose to re-register
+     * after REGISTRATION_EXPIRY_TIME_MS.
+     *
+     * @return true if the registration has expired.
+     */
+    private boolean isRegistrationExpired() {
+        final SharedPreferences prefs = getGCMPreferences(context);
+        // checks if the information is not stale
+        long expirationTime =
+                prefs.getLong(PROPERTY_ON_SERVER_EXPIRATION_TIME, -1);
+        return System.currentTimeMillis() > expirationTime;
+    }
+    
+    /**
+     * Stores the registration id, app versionCode, and expiration time in the
+     * application's {@code SharedPreferences}.
+     *
+     * @param context application's context.
+     * @param regId registration id
+     */
+    private void setRegistrationId(Context context, String regId) {
+        final SharedPreferences prefs = getGCMPreferences(context);
+        int appVersion = getAppVersion(context);
+        Log.v(TAG, "Saving regId on app version " + appVersion);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(PROPERTY_REG_ID, regId);
+        editor.putInt(PROPERTY_APP_VERSION, appVersion);
+        long expirationTime = System.currentTimeMillis() + REGISTRATION_EXPIRY_TIME_MS;
+
+        editor.putLong(PROPERTY_ON_SERVER_EXPIRATION_TIME, expirationTime);
+        editor.commit();
+    }
+    
 	//This method physically displays the posts once they are retrieved.  The input arraylist contains all the posts and post data.
 	public void displayPosts(ArrayList<Posts> postList)
 	{
@@ -294,20 +435,19 @@ public class MainActivity extends FragmentActivity implements
 	//Gets existing login preferences.  If it cannot find them, it returns null in both username and password variables.  
 	private boolean getPreferences()
 	{
+    
 		boolean result = false;
 		SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
 		username = (shared.getString("username", null));
 		password = (shared.getString("password", null));
 		postLimit = (shared.getString("postLimit", "10"));
 		targetIndex = (shared.getInt("targetIndex",0));
-		
-		Log.e("test",username);
-		Log.e("test",password);
+
 		if(username != null && password != null)
 		{
 			result = true;
 		}
-		return result;
+  	return result;
 	}
 	
 	/**
@@ -335,6 +475,7 @@ public class MainActivity extends FragmentActivity implements
 					ARG_SECTION_NUMBER)));
 			return rootView;
 		}
+		
 	}
 	
 	//This asynctask validates users against the PHP service.  A '1' means you are accepted.  A '0' means rejected.  
@@ -387,16 +528,84 @@ public class MainActivity extends FragmentActivity implements
 
 	      @Override
 	      protected void onPostExecute(Boolean result) {       
-	
+	          
 	      } 
 
 	      @Override
 	      protected void onPreExecute() {
-	      }
+      }
 
 	      @Override
 	      protected void onProgressUpdate(Void... values) {
+
 	      }
+	}
+	
+	private void registerBackground() {
+	    new AsyncTask<Object, Object, Object>() {
+	  		@Override
+			protected Object doInBackground(Object... params) {
+				 String msg = "";
+		        
+		            try {
+		                if (gcm == null) {
+		                    gcm = GoogleCloudMessaging.getInstance(context);
+		    		        
+		                }
+		                regid = gcm.register(SENDER_ID);
+		                // You should send the registration ID to your server over HTTP,
+		                // so it can use GCM/HTTP or CCS to send messages to your app.
+
+		                // For this demo: we don't need to send it because the device
+		                // will send upstream messages to a server that echo back the message
+		                // using the 'from' address in the message.
+
+		                // Save the regid - no need to register again.
+		                setRegistrationId(context, regid);
+		                
+			    	  	HttpClient httpclient = new DefaultHttpClient();
+			    	    HttpPost httppost = new HttpPost(getBaseContext().getString(R.string.set_register_url));
+			    	    
+			    	    InputStream is = null; 	        
+			   	    // Add your data
+
+		  	        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
+		  	        SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(context);
+		  	        username = (shared.getString("username", null));
+		  	        password = (shared.getString("password", null));
+		  	        nameValuePairs.add(new BasicNameValuePair("user", username));  
+		  	        nameValuePairs.add(new BasicNameValuePair("pass", password));  		  	        
+		  	        nameValuePairs.add(new BasicNameValuePair("regID", regid));  
+		  	        nameValuePairs.add(new BasicNameValuePair("androidID", androidID));   
+	  	       try {
+							httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+							HttpResponse response = httpclient.execute(httppost);
+							HttpEntity entity = response.getEntity();
+				    		is = entity.getContent();
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+			    		//convert response to string
+			    		try{
+			    			BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
+			    			StringBuilder sb = new StringBuilder();
+			    			String line = null;
+			    			while ((line = reader.readLine()) != null) {
+			    				sb.append(line + "\n");
+			    			}
+			    			is.close();		    			
+			
+			    		}catch(Exception e){
+			    			Log.e("log", "Error converting result "+e.toString());
+			    		}  		
+	                
+		            } catch (IOException ex) {
+		                msg = "Error :" + ex.getMessage();
+		            }
+		            return msg;
+			}
+	    }.execute(null, null, null);
 	}
 	
 	//This asynctask gets all posts for a given plot.  Post limit is hard coded to 5 currently.  This needs to be changed and allow a user
@@ -409,11 +618,10 @@ public class MainActivity extends FragmentActivity implements
 	    	  	HttpClient httpclient = new DefaultHttpClient();
 	    	    HttpPost httppost = new HttpPost(getBaseContext().getString(R.string.get_posts_url));
  	    	    postList = new ArrayList<Posts>();
-	    	    
+
   	        InputStream is = null; 	        
   	        JSONObject json = new JSONObject();
   	        JSONArray postInfo = new JSONArray();
-  	        
 	    	    // Add your data
 	    	        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
 	    	        nameValuePairs.add(new BasicNameValuePair("user", username));  //insert user name here
@@ -478,11 +686,19 @@ public class MainActivity extends FragmentActivity implements
 
 	      @Override
 	      protected void onPostExecute(ArrayList<Posts> result) {       
-		  		displayPosts(result);
-	      } 
+	  		progressDialog.dismiss();
+		      
+	    	  displayPosts(result);
+		  } 
 
 	      @Override
 	      protected void onPreExecute() {
+	          progressDialog  = new ProgressDialog (MainActivity.this);
+	          progressDialog.setIndeterminate(true);
+	      	progressDialog.setTitle("Loading Plot...");
+	      	progressDialog.setMessage("Please wait.");
+	          
+	          progressDialog.show();
 	      }
 
 	      @Override

@@ -65,16 +65,13 @@ OnSharedPreferenceChangeListener{
 		public void onSharedPreferenceChanged(
 				SharedPreferences sharedPreferences, String key) {
 
-			if (key.equals("postLmit"))
-			{
-		        //Get the current summary
-		        pref = findPreference(key);
-		        //Get the user input data
-		        String prefString = sharedPreferences.getString(key, "");
-	
-		        //Update the summary with user input data
-		        pref.setSummary("Your post limit is '" + prefString + "'");		
-			}
+
+				SharedPreferences shared = PreferenceManager.getDefaultSharedPreferences(this);
+				
+		    	EditTextPreference etp = (EditTextPreference) findPreference("postLimit");
+		    	String prefString = shared.getString("postLimit", "");
+		    	etp.setSummary("Your post limit is '" + prefString + "'");
+
 		}
 }
 
